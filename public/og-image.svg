@@ -1,0 +1,23 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#eaeaea" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)" rx="40" />
+
+  <!-- 'Unfold' and 'Document Processing' branding text -->
+  <text x="50%" y="40%" text-anchor="middle" fill="#333" font-size="90" font-family="Arial, sans-serif" font-weight="bold">
+    Unfold
+  </text>
+  <text x="50%" y="52%" text-anchor="middle" fill="#333" font-size="48" font-family="Arial, sans-serif">
+    Document Processing
+  </text>
+
+  <!-- Optional subtext or tagline -->
+  <text x="50%" y="65%" text-anchor="middle" fill="#666" font-size="32" font-family="Arial, sans-serif">
+    AI-Powered Tools for Your Documents
+  </text>
+</svg>

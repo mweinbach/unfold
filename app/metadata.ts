@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     url: "https://yourdomain.com",
     images: [
       {
-        url: "/icon.svg",
+        url: "/og-image.svg",
         width: 1200,
         height: 630,
         alt: "Unfold Document Processing",
@@ -23,6 +23,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Unfold | Document Processing",
     description: "Process and analyze your documents with AI",
-    images: ["/icon.svg"],
+    images: ["/og-image.svg"],
   },
 }; 
