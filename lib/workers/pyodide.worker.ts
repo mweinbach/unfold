@@ -1,30 +1,31 @@
-/* pyodide.worker.ts */
 /// <reference lib="webworker" />
 
+// Define an extended worker scope that includes pyodide
+interface PyodideWorkerGlobal extends DedicatedWorkerGlobalScope {
+  pyodide?: any;
+  loadPyodide?: any;
+}
+
+// Cast "self" to our extended interface
+const workerScope = self as unknown as PyodideWorkerGlobal;
+
 // Load the Pyodide script from the official CDN
-self.importScripts("https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js");
+workerScope.importScripts("https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js");
 
-declare const loadPyodide: any;
-declare const self: DedicatedWorkerGlobalScope & { pyodide?: any };
-
-const globalScope = self;
-
-// This function loads Pyodide and micropip if they're not already loaded.
 async function loadPyodideAndPackages() {
-  if (!globalScope.pyodide) {
+  if (!workerScope.pyodide) {
     console.log("[Pyodide Worker] Loading Pyodide...");
     // Use indexURL so Pyodide knows where to load its files.
-    globalScope.pyodide = await loadPyodide({
+    workerScope.pyodide = await workerScope.loadPyodide({
       indexURL: "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/",
     });
     console.log("[Pyodide Worker] Pyodide loaded. Now loading micropip...");
 
-    await globalScope.pyodide.loadPackage("micropip");
+    await workerScope.pyodide.loadPackage("micropip");
     console.log("[Pyodide Worker] micropip loaded. Installing Python packages...");
 
     // Install the needed Python libraries
-    // pdfminer.six requires a pure-Python environment, but should work here
-    await globalScope.pyodide.runPythonAsync(`
+    await workerScope.pyodide.runPythonAsync(`
 import micropip
 await micropip.install("pdfminer.six")
 await micropip.install("python-docx")
@@ -33,14 +34,14 @@ await micropip.install("python-docx")
   }
 }
 
-globalScope.onmessage = async (e: MessageEvent<any>) => {
+workerScope.onmessage = async (e: MessageEvent<any>) => {
   try {
     // Check for dummy preload message
     if (e.data && e.data.dummy) {
       console.log("[Pyodide Worker] Received dummy preload request.");
       await loadPyodideAndPackages();
       console.log("[Pyodide Worker] Preload complete. Sending response...");
-      self.postMessage({ success: true, preload: true });
+      workerScope.postMessage({ success: true, preload: true });
       return;
     }
 
@@ -62,14 +63,13 @@ globalScope.onmessage = async (e: MessageEvent<any>) => {
     ];
 
     let content: string;
-
     if (knownFormats.includes(extension)) {
       // Read the file as an ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       const filePath = `/tmp/${file.name}`;
 
       // Write to Pyodide's virtual filesystem
-      globalScope.pyodide.FS.writeFile(filePath, new Uint8Array(arrayBuffer));
+      workerScope.pyodide.FS.writeFile(filePath, new Uint8Array(arrayBuffer));
 
       // Python snippet for extraction
       const pyCode = `
@@ -91,11 +91,11 @@ def extract_text(path):
         return Path(path).read_text(encoding='utf-8', errors='ignore')
 `;
 
-      // Make sure the function is defined
-      globalScope.pyodide.runPython(pyCode);
+      // Ensure the function is defined
+      workerScope.pyodide.runPython(pyCode);
 
       // Run extraction
-      content = globalScope.pyodide.runPython(`extract_text("${filePath}")`);
+      content = workerScope.pyodide.runPython(`extract_text("${filePath}")`);
     } else {
       // Fallback to reading as text
       content = await file.text();
@@ -109,10 +109,12 @@ def extract_text(path):
     };
 
     console.log(`[Pyodide Worker] Successfully processed ${file.name}`);
-    self.postMessage({ success: true, file: processedFile });
+    workerScope.postMessage({ success: true, file: processedFile });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error("[Pyodide Worker] Error:", errorMessage);
-    self.postMessage({ success: false, error: errorMessage });
+    workerScope.postMessage({ success: false, error: errorMessage });
   }
 };
+
+export {};
