@@ -98,12 +98,6 @@ importers:
       '@types/node':
         specifier: 20.6.2
         version: 20.6.2
-      '@types/react':
-        specifier: 18.2.22
-        version: 18.2.22
-      '@types/react-dom':
-        specifier: 18.2.7
-        version: 18.2.7
       autoprefixer:
         specifier: 10.4.15
         version: 10.4.15(postcss@8.4.30)
@@ -182,6 +176,13 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.24.1
+    devDependencies:
+      '@types/react':
+        specifier: 18.2.22
+        version: 18.2.22
+      '@types/react-dom':
+        specifier: 18.2.7
+        version: 18.2.7
 
 packages:
 
