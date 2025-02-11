@@ -15,3 +15,4 @@ export interface DocumentContext {
 export interface FinalOutput {
   documentContext: string;
   userInstructions: string;
+}
