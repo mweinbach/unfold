@@ -24,6 +24,14 @@ export function DocumentList({ sortedFiles, unsortedFiles, onToggleFile }: Docum
     setIsViewerOpen(true)
   }
 
+  const renderLoadingSpinner = (
+    <div
+      className="ml-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent align-middle text-muted-foreground"
+      role="status"
+      aria-label="Loading"
+    />
+  );
+
   return (
     <Card className="p-4 mt-4 shadow-sm rounded-xl transition-shadow duration-200 hover:shadow-md">
       {/* Folder Files */}
@@ -51,6 +59,8 @@ export function DocumentList({ sortedFiles, unsortedFiles, onToggleFile }: Docum
                       {path}
                     </span>
                   </label>
+                  {/* Show a spinner if loading */}
+                  {file.status === "loading" && renderLoadingSpinner}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -91,6 +101,8 @@ export function DocumentList({ sortedFiles, unsortedFiles, onToggleFile }: Docum
                       {file.name}
                     </span>
                   </label>
+                  {/* Show a spinner if loading */}
+                  {file.status === "loading" && renderLoadingSpinner}
                   <Button
                     variant="ghost"
                     size="sm"

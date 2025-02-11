@@ -15,7 +15,7 @@ export function useDocumentProcessor() {
     setDocumentContext(prev => {
       if (isSorted) {
         const newSorted = { ...prev.sorted };
-        newSorted[file.path] = { ...file, selected: !file.selected };
+        newSorted[file.path] = { ...newSorted[file.path], selected: !file.selected };
         return { ...prev, sorted: newSorted };
       } else {
         const newUnsorted = prev.unsorted.map(f => 
@@ -31,52 +31,102 @@ export function useDocumentProcessor() {
     setError(null);
 
     try {
-      const processedFiles: ProcessedFile[] = [];
+      // Create placeholder processed files with status=loading
+      const partialFiles: ProcessedFile[] = files.map((f) => ({
+        name: f.name,
+        path: f.name,
+        content: "",
+        selected: false,
+        status: "loading",
+      }));
 
-      // We spawn a separate worker per file to simplify concurrency
-      const promises = files.map((file) => {
-        return new Promise<ProcessedFile>((resolve, reject) => {
-          const worker = new Worker(new URL('../workers/pyodide.worker.ts', import.meta.url), {
-            type: 'module',
+      // Add placeholders to state so the user sees them immediately
+      setDocumentContext(prev => {
+        if (sorted) {
+          const newSorted = { ...prev.sorted };
+          partialFiles.forEach(file => {
+            newSorted[file.path] = file;
           });
+          return { ...prev, sorted: newSorted };
+        } else {
+          return { ...prev, unsorted: [...prev.unsorted, ...partialFiles] };
+        }
+      });
+
+      // Spawn a worker per file, updating each placeholder on success/failure
+      const promises = partialFiles.map((placeholder, i) => {
+        const file = files[i];
+        return new Promise<ProcessedFile>((resolve, reject) => {
+          const worker = new Worker(
+            new URL('../workers/pyodide.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
 
           worker.onmessage = (event: MessageEvent) => {
             if (event.data.success) {
-              resolve(event.data.file);
+              // Worker finished successfully
+              placeholder.status = "processed";
+              placeholder.content = event.data.file.content || "";
+              // Update context
+              setDocumentContext(prev => {
+                if (sorted) {
+                  const newSorted = { ...prev.sorted };
+                  newSorted[placeholder.path] = { ...placeholder };
+                  return { ...prev, sorted: newSorted };
+                } else {
+                  const newUnsorted = prev.unsorted.map(f =>
+                    f.path === placeholder.path ? { ...placeholder } : f
+                  );
+                  return { ...prev, unsorted: newUnsorted };
+                }
+              });
+              resolve(placeholder);
             } else {
+              // Worker returned an error
+              placeholder.status = "error";
+              placeholder.content = "";
+              setDocumentContext(prev => {
+                if (sorted) {
+                  const newSorted = { ...prev.sorted };
+                  newSorted[placeholder.path] = { ...placeholder };
+                  return { ...prev, sorted: newSorted };
+                } else {
+                  const newUnsorted = prev.unsorted.map(f =>
+                    f.path === placeholder.path ? { ...placeholder } : f
+                  );
+                  return { ...prev, unsorted: newUnsorted };
+                }
+              });
               reject(event.data.error);
             }
             worker.terminate();
           };
 
           worker.onerror = (err) => {
+            placeholder.status = "error";
+            placeholder.content = "";
+            setDocumentContext(prev => {
+              if (sorted) {
+                const newSorted = { ...prev.sorted };
+                newSorted[placeholder.path] = { ...placeholder };
+                return { ...prev, sorted: newSorted };
+              } else {
+                const newUnsorted = prev.unsorted.map(f =>
+                  f.path === placeholder.path ? { ...placeholder } : f
+                );
+                return { ...prev, unsorted: newUnsorted };
+              }
+            });
             worker.terminate();
             reject(err);
           };
 
-          // Send the file to the worker
+          // Kick off the worker
           worker.postMessage({ file });
         });
       });
 
-      // Wait for all conversions to finish
-      const results = await Promise.all(promises);
-      processedFiles.push(...results);
-
-      // Merge into state
-      setDocumentContext(prev => {
-        if (sorted) {
-          const newSorted = { ...prev.sorted };
-          processedFiles.forEach(file => {
-            const path = file.path || file.name;
-            newSorted[path] = file;
-          });
-          return { ...prev, sorted: newSorted };
-        } else {
-          return { ...prev, unsorted: [...prev.unsorted, ...processedFiles] };
-        }
-      });
-
+      await Promise.all(promises);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
