@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { FolderUp, Upload } from "lucide-react"
 import { DocumentList } from "./document-list"
-import { DocumentContext } from "@/lib/types"
+import { DocumentContext, ProcessedFile } from "@/lib/types"
 
 interface DocumentUploaderProps {
   onFolderUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -33,6 +33,7 @@ export function DocumentUploader({
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             onChange={onFolderUpload}
             multiple
+            {...( {} as any)}
           />
           <Button variant="outline" className="h-24 md:h-32 border-dashed w-full rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
             <FolderUp className="mr-2 h-5 w-5" />
