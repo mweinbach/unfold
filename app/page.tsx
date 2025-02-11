@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/footer"
 import { DocumentUploader } from "@/components/document-uploader"
 import { DocumentProcessor } from "@/components/document-processor"
 import { useDocumentProcessor } from "@/lib/hooks/use-document-processor"
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export default function Home() {
   const [instructions, setInstructions] = useState("")
