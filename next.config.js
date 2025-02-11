@@ -6,10 +6,7 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   webpack: (config) => {
-    config.module.rules.push({
-      test: /\.worker\.ts$/,
-      use: { loader: "worker-loader" },
-    });
+    // Removed worker-loader rule to use Next.js built-in worker support
     return config;
   },
 };

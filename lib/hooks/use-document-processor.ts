@@ -29,27 +29,47 @@ export function useDocumentProcessor() {
   const processFiles = useCallback(async (files: File[], sorted: boolean = false) => {
     setIsProcessing(true);
     setError(null);
+
     try {
-      const worker = new Worker(new URL('../workers/pyodide.worker.ts', import.meta.url));
       const processedFiles: ProcessedFile[] = [];
-      for (const file of files) {
-        if (!file.name.endsWith('.txt') && !file.name.endsWith('.md')) {
-          continue;
-        }
-        const content = await file.text();
-        const processedFile: ProcessedFile = {
-          name: file.name,
-          path: sorted ? file.webkitRelativePath || file.name : file.name,
-          content,
-          selected: false
-        };
-        processedFiles.push(processedFile);
-      }
+
+      // We spawn a separate worker per file to simplify concurrency
+      const promises = files.map((file) => {
+        return new Promise<ProcessedFile>((resolve, reject) => {
+          const worker = new Worker(new URL('../workers/pyodide.worker.ts', import.meta.url), {
+            type: 'module',
+          });
+
+          worker.onmessage = (event: MessageEvent) => {
+            if (event.data.success) {
+              resolve(event.data.file);
+            } else {
+              reject(event.data.error);
+            }
+            worker.terminate();
+          };
+
+          worker.onerror = (err) => {
+            worker.terminate();
+            reject(err);
+          };
+
+          // Send the file to the worker
+          worker.postMessage({ file });
+        });
+      });
+
+      // Wait for all conversions to finish
+      const results = await Promise.all(promises);
+      processedFiles.push(...results);
+
+      // Merge into state
       setDocumentContext(prev => {
         if (sorted) {
           const newSorted = { ...prev.sorted };
           processedFiles.forEach(file => {
-            newSorted[file.path] = file;
+            const path = file.path || file.name;
+            newSorted[path] = file;
           });
           return { ...prev, sorted: newSorted };
         } else {
@@ -57,8 +77,9 @@ export function useDocumentProcessor() {
         }
       });
 
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -71,14 +92,14 @@ export function useDocumentProcessor() {
       Object.entries(documentContext.sorted)
         .filter(([_, file]) => file.selected)
         .map(([path, file]) => 
-        `  <file path="${path}">\n    <content>${file.content}</content>\n  </file>`
-      ).join('\n'),
+          `  <file path="${path}">\n    <content>${file.content}</content>\n  </file>`
+        ).join('\n'),
       documentContext.unsorted.some(f => f.selected) ? '  <unsorted_files>' : '',
       documentContext.unsorted
         .filter(file => file.selected)
         .map(file =>
-        `    <filename name="${file.name}">\n      <context>${file.content}</context>\n    </filename>`
-      ).join('\n'),
+          `    <filename name="${file.name}">\n      <context>${file.content}</context>\n    </filename>`
+        ).join('\n'),
       documentContext.unsorted.some(f => f.selected) ? '  </unsorted_files>' : '',
       '</document_context>'
     ].filter(Boolean).join('\n');
