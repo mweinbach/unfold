@@ -2,12 +2,14 @@
 node_modules
 .pnpm-store/
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+
 # Build outputs
-dist
-dist-ssr
-*.local
+.vercel
 build
-out
 
 # Logs
 logs
@@ -47,9 +49,6 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 .eslintcache
-
-# Vite
-.vite/
 
 # Optional
 *.bak
