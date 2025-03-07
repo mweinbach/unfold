@@ -8,10 +8,20 @@ import { DocumentProcessor } from "@/components/document-processor"
 import { useDocumentProcessor } from "@/lib/hooks/use-document-processor"
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { PyodidePreloader } from "@/components/pyodide-preloader"
 
 export default function Home() {
   const [instructions, setInstructions] = useState("")
-  const { documentContext, isProcessing, error, processFiles, generateOutput, toggleFile } = useDocumentProcessor()
+  const { 
+    documentContext, 
+    isProcessing, 
+    error, 
+    pyodideReady,
+    processFiles, 
+    generateOutput, 
+    toggleFile,
+    clearPyodideCache
+  } = useDocumentProcessor()
 
   const handleFolderUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -33,6 +43,9 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      
+      {/* This component preloads Pyodide in the background */}
+      <PyodidePreloader />
 
       <main className="flex-1 container mx-auto p-4 md:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 auto-rows-min">
@@ -50,11 +63,15 @@ export default function Home() {
             output={output}
             instructions={instructions}
             onInstructionsChange={(value) => setInstructions(value)}
+            pyodideReady={pyodideReady}
+            onClearCache={clearPyodideCache}
           />
         </div>
       </main>
 
       <Footer />
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ChevronDown, Copy } from "lucide-react"
 import { FinalOutput } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { PyodideStatus } from "./pyodide-status"
 
 interface DocumentProcessorProps {
   isProcessing: boolean;
@@ -15,6 +16,8 @@ interface DocumentProcessorProps {
   output: FinalOutput;
   instructions: string;
   onInstructionsChange: (value: string) => void;
+  pyodideReady?: boolean;
+  onClearCache?: () => void;
 }
 
 export function DocumentProcessor({
@@ -23,6 +26,8 @@ export function DocumentProcessor({
   output,
   instructions,
   onInstructionsChange,
+  pyodideReady = false,
+  onClearCache = () => {},
 }: DocumentProcessorProps) {
   const [isContextOpen, setIsContextOpen] = useState(false)
   const [isOutputOpen, setIsOutputOpen] = useState(true)
@@ -40,6 +45,15 @@ export function DocumentProcessor({
 
   return (
     <div className="flex flex-col gap-4 p-6 bg-card rounded-xl shadow-md border transition-shadow duration-200 hover:shadow-lg sticky top-4">
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-2xl font-bold">Document Processor</h1>
+        <PyodideStatus 
+          ready={pyodideReady} 
+          isProcessing={isProcessing}
+          onClearCache={onClearCache}
+        />
+      </div>
+
       <div className="space-y-6 flex-none">
         <Collapsible
           open={isContextOpen}
